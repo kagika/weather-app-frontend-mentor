@@ -13,14 +13,7 @@ function App() {
   const [precipitationUnit, setprecipitationUnit] = useState(false);
   const [formData, setformData] = useState("");
   const [locationSuggestions, setlocationSuggestions] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const filtered = [
-    ...new Set(
-      locationSuggestions.filter((loc) =>
-        loc.toLowerCase().includes(formData.toLowerCase()),
-      ),
-    ),
-  ];
+  const [loading, setLoading] = useState(null);
 
   function fetchData() {
     return setTimeout(async () => {
@@ -28,16 +21,33 @@ function App() {
       setlocationSuggestions(results.map((loc) => loc.name));
     }, 300);
   }
+  [];
 
   useEffect(() => {
-    if (!formData) {
-      setlocationSuggestions([]);
-      return;
-    }
-    const timer = setTimeout(async () => {
-      const results = await coordinateApi(formData);
-      setlocationSuggestions(results.map((loc) => loc.name));
-    }, 300);
+    try {
+      if (!formData) {
+        setlocationSuggestions([]);
+        return;
+      }
+      var timer = setTimeout(async () => {
+        setLoading(true)
+        const results = await coordinateApi(formData);
+        if (!results) {
+          setlocationSuggestions([]);
+          return;
+        }
+        const name = results.map((loc) => loc.name);
+        const filtered = name.filter((loc) =>
+          loc.toLowerCase().includes(formData.toLowerCase()),
+        );
+        setlocationSuggestions([...new Set(filtered)]);
+        setLoading(false)
+      }, 300);
+    } catch {
+      console.log("Cannot display locations");
+      setLoading(false)
+    } 
+    
     return () => clearTimeout(timer);
   }, [formData]);
 
@@ -52,7 +62,8 @@ function App() {
     setopenUnit(!openUnit);
     setRotation(!rotation);
   }
-
+  console.log(loading)
+  console.log(locationSuggestions);
   return (
     <>
       <main>
@@ -130,10 +141,9 @@ function App() {
           {/* SEARCH INPUT BAR  */}
 
           <div className="search-bar">
-            
-              <form action="GET" onSubmit={handleonSubmit}>
-                <label htmlFor="locationInput"></label>
-                <div className="input-wrapper">
+            <form action="GET" onSubmit={handleonSubmit}>
+              <label htmlFor="locationInput"></label>
+              <div className="input-wrapper">
                 <input
                   type="text"
                   value={formData}
@@ -142,16 +152,11 @@ function App() {
                   onChange={(e) => handleinputChange(e)}
                 />
                 <div className="location-suggestions">
-                {filtered.map((loc, index) => (
-                  <p key={index}> {loc}</p>
-                ))}
-              </div>
+                  {loading ? <p>Loading...</p> : locationSuggestions.map((city,index) => <p key={index}>{city}</p>)}
                 </div>
-                <button type="submit">Search </button>
-              </form>
-
-            
-            
+              </div>
+              <button type="submit">Search </button>
+            </form>
           </div>
 
           <div className="weather">
